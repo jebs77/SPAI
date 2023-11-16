@@ -154,7 +154,7 @@ def getFromFile(index, filename):
     P = RIRs['P'][0][index]
     positions = []
     pressures = []
-    for i in range(50):
+    for i in range(60):
         positions.append([DOA[i][0], DOA[i][1], DOA[i][2]])
         pressures.append(abs(P[i]))
     return [{'position': tuple(pos), 'pressure': pressure} for pos, pressure in zip(positions, pressures)]
