@@ -22,7 +22,7 @@ SPAI.visualize_interpolation(P, R, T, kappa)
 # and a sampling rate of 44100 Hz (standard for audio)
 speed_of_sound = 343
 sampling_rate = 44100
-max_simulation_time = 0.5  # in seconds
+max_simulation_time = 0.1  # in seconds
 
 X_1 = interpolated_point_cloud = SPAI.construct_interpolated_point_cloud(P_positions, Q_positions, T, kappa)
 

@@ -15,8 +15,11 @@ def transport_plan(P, Q):
     a, b = np.ones((len(P),)) / len(P), np.ones((len(Q),)) / len(Q)
     
     # Compute the optimal transport matrix using the EMD solver
-    T = ot.emd(a, b, cost_matrix)
+    # T = ot.emd(a, b, cost_matrix)
     
+    # Compute the optimal transport matrix using the Sinkhorn solver
+    T = ot.bregman.sinkhorn(a, b, cost_matrix, reg=1e-3)
+
     return T
 
 # Function to construct the interpolated point cloud
@@ -152,15 +155,13 @@ def getFromFile(index, filename):
     RIRs = data['RIRs']
     DOA = RIRs['DOA'][0][index]
     P = RIRs['P'][0][index]
-    positions = []
-    pressures = []
-    for i in range(60):
-        positions.append([DOA[i][0], DOA[i][1], DOA[i][2]])
-        pressures.append(abs(P[i]))
-    return [{'position': tuple(pos), 'pressure': pressure} for pos, pressure in zip(positions, pressures)]
 
+    # Adjusted for 2400 data points
+    num_points = min(len(DOA), len(P), 2400)
 
-
+    data_list = [{'position': (DOA[i][0], DOA[i][1], DOA[i][2]), 'pressure': P[i]} for i in range(num_points)]
+    
+    return data_list
 
 # positions = np.random.rand(num_sources, 3) * 5  # random positions within a 5x5x5 cube
 # pressures = np.random.rand(num_sources)  # random pressures between 0 and 1
