@@ -159,7 +159,7 @@ def getFromFile(index, filename):
     # Adjusted for 2400 data points
     num_points = min(len(DOA), len(P), 2400)
 
-    data_list = [{'position': (DOA[i][0], DOA[i][1], DOA[i][2]), 'pressure': P[i]} for i in range(num_points)]
+    data_list = [{'position': (DOA[i][0], DOA[i][1], DOA[i][2]), 'pressure': abs(P[i])} for i in range(num_points)]
     
     return data_list
 
