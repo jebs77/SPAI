@@ -18,7 +18,7 @@ def transport_plan(P, Q):
     # T = ot.emd(a, b, cost_matrix)
     
     # Compute the optimal transport matrix using the Sinkhorn solver
-    T = ot.bregman.sinkhorn(a, b, cost_matrix, reg=1e-3)
+    T = ot.bregman.sinkhorn(a, b, cost_matrix, reg=1e-3, numItermax=100000)
 
     return T
 
@@ -157,7 +157,7 @@ def getFromFile(index, filename):
     P = RIRs['P'][0][index]
 
     # Adjusted for 2400 data points
-    num_points = min(len(DOA), len(P), 2400)
+    num_points = min(len(DOA), len(P), 600)
 
     data_list = [{'position': (DOA[i][0], DOA[i][1], DOA[i][2]), 'pressure': abs(P[i])} for i in range(num_points)]
     

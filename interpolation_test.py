@@ -1,11 +1,10 @@
 import SPAIdermenLib as SPAI
 import matplotlib.pyplot as plt
 
-#ignore this comment
 
-P = SPAI.getFromFile(0, 'room_impulse_responses.mat')
-Q = SPAI.getFromFile(4, 'room_impulse_responses.mat')
-R = SPAI.getFromFile(2, 'room_impulse_responses.mat')
+P = SPAI.getFromFile(0, 'room_impulse_response_measurement.mat')
+Q = SPAI.getFromFile(4, 'room_impulse_response_measurement.mat')
+R = SPAI.getFromFile(2, 'room_impulse_response_measurement.mat')
 print(P)
 # P= SPAI.generate_random_sources(10)
 # Q= SPAI.generate_random_sources(10)
