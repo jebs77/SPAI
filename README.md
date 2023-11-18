@@ -1,2 +1,2 @@
 # SPAI
-best team: spaidermen
+best team: Spaidermen
