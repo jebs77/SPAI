@@ -12,7 +12,7 @@ print(P)
 kappa = 0.5
 
 P_positions, Q_positions = SPAI.calculate_cloud_position(P, R)
-g
+
 T = SPAI.transport_plan(P_positions, Q_positions)
 
 SPAI.visualize_interpolation(P, R, T, kappa)

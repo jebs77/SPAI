@@ -101,10 +101,10 @@ def visualize_interpolation(P, Q, T, kappa):
     ax = fig.add_subplot(111, projection='3d')
 
     # Plot the original P point cloud with label for legend
-    ax.scatter(P_positions[:, 0], P_positions[:, 1], P_positions[:, 2], s=P_pressures * 100, c='r', marker='o', label='Original P')
+    ax.scatter(P_positions[:, 0], P_positions[:, 1], P_positions[:, 2], s=1+(P_pressures), c='r', marker='o', label='Original P')
 
     # Plot the original Q point cloud with label for legend
-    ax.scatter(Q_positions[:, 0], Q_positions[:, 1], Q_positions[:, 2], s=Q_pressures * 100, c='b', marker='^', label='Original Q')
+    ax.scatter(Q_positions[:, 0], Q_positions[:, 1], Q_positions[:, 2], s=1+(Q_pressures), c='b', marker='^', label='Original Q')
 
     # Plot the interpolated point cloud with label for legend
     ax.scatter(interpolated_point_cloud[:, 0], interpolated_point_cloud[:, 1], interpolated_point_cloud[:, 2], s=50, c='g', marker='x', label='Interpolated')
