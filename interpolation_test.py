@@ -2,19 +2,18 @@ import SPAIdermenLib as SPAI
 import matplotlib.pyplot as plt
 
 
-P = SPAI.getFromFile(0, 'room_impulse_response_measurement.mat')
-Q = SPAI.getFromFile(4, 'room_impulse_response_measurement.mat')
-R = SPAI.getFromFile(2, 'room_impulse_response_measurement.mat')
+P = SPAI.getFromFile(0, 'room_impulse_responses.mat')
+Q = SPAI.getFromFile(1, 'room_impulse_responses.mat')
 print(P)
 # P= SPAI.generate_random_sources(10)
 # Q= SPAI.generate_random_sources(10)
 kappa = 0.5
 
-P_positions, Q_positions = SPAI.calculate_cloud_position(P, R)
+P_positions, Q_positions = SPAI.calculate_cloud_position(P, Q)
 
 T = SPAI.transport_plan(P_positions, Q_positions)
 
-SPAI.visualize_interpolation(P, R, T, kappa)
+SPAI.visualize_interpolation(P, Q, T, kappa)
 
 # Example usage:
 # Set the speed of sound to 343 m/s (speed of sound in air at 20 degrees Celsius)
