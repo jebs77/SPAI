@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 
 
 P = SPAI.getFromFile(0, 'room_impulse_responses.mat')
-Q = SPAI.getFromFile(1, 'room_impulse_responses.mat')
+Q = SPAI.getFromFile(2, 'room_impulse_responses.mat')
 print(P)
 # P= SPAI.generate_random_sources(10)
 # Q= SPAI.generate_random_sources(10)
