@@ -18,7 +18,7 @@ def transport_plan(P, Q):
     # T = ot.emd(a, b, cost_matrix)
     
     # Compute the optimal transport matrix using the Sinkhorn solver
-    T = ot.bregman.sinkhorn(a, b, cost_matrix, reg=1e-3, numItermax=100000)
+    T = ot.bregman.sinkhorn(a, b, cost_matrix, reg=1e-4, numItermax=100000)
 
     return T
 
