@@ -4,15 +4,15 @@ import ot
 import scipy as sp
 
 # Function of the transport plan
-def transport_plan(P, Q):
+def transport_plan(P_position, Q_position):
     # Convert point lists into numpy arrays
-    P_array = np.array(P)
-    Q_array = np.array(Q)
+    P_array = np.array(P_position)
+    Q_array = np.array(Q_position)
     # Calculate the cost matrix, the squared euclidean distance between points
     cost_matrix = ot.dist(P_array, Q_array, metric='sqeuclidean')
     
     # Compute the amount of mass to transport from P to Q
-    a, b = np.ones((len(P),)) / len(P), np.ones((len(Q),)) / len(Q)
+    a, b = np.ones((len(P_position),)) / len(P_position), np.ones((len(Q_position),)) / len(Q_position)
     
     # Compute the optimal transport matrix using the EMD solver
     # T = ot.emd(a, b, cost_matrix)
@@ -24,12 +24,21 @@ def transport_plan(P, Q):
 
 # Function to construct the interpolated point cloud
 def construct_interpolated_point_cloud(P, Q, T, kappa):
-    # Assuming u and v are given or can be calculated from P and Q
-    u = np.sum(T, axis=1)
-    v = np.sum(T, axis=0)
+    # Calculate P_position and Q_position
+    P_position = calculate_cloud_position(P)
+    Q_position = calculate_cloud_position(Q)
+
+    # Convert pressures to numpy arrays if they aren't already
+    P_pressure = np.array(calculate_cloud_pressure(P))
+    Q_pressure = np.array(calculate_cloud_pressure(Q))
+
+    # Calculate u and v by solving the linear systems
+    u, _, _, _ = np.linalg.lstsq(T, P_pressure, rcond=None)
+    v, _, _, _ = np.linalg.lstsq(T.T, Q_pressure, rcond=None)
+
     
     # Initialize the variables
-    K = len(P) + len(Q)  # total number of points after interpolation
+    K = len(P_position) + len(Q_position)  # total number of points after interpolation
     interpolated_points = []
     
     # Copy the transport plan
@@ -41,7 +50,7 @@ def construct_interpolated_point_cloud(P, Q, T, kappa):
         if ui > 0:
             if np.sum(T[:, i]) == 0:  # Check for vanishing point
                 r_k = (1 - kappa) * ui
-                z_k = P[i]
+                z_k = P_position[i]
                 interpolated_points.append((r_k, z_k))
                 k += 1
             else:
@@ -51,24 +60,25 @@ def construct_interpolated_point_cloud(P, Q, T, kappa):
         if vj > 0:
             if np.sum(T[j, :]) == 0:  # Check for appearing point
                 r_k = kappa * vj
-                z_k = Q[j]
+                z_k = Q_position[j]
                 interpolated_points.append((r_k, z_k))
                 k += 1
             else:
                 T_prime[j, :] = T_prime[j, :] + kappa * vj * T_prime[j, :] / np.linalg.norm(T_prime[j, :], 1)
     
-    for i in range(len(P)):
-        for j in range(len(Q)):
+    for i in range(len(P_position)):
+        for j in range(len(Q_position)):
             if T_prime[i, j] > 0:  # Check for moving point
                 r_k = T_prime[i, j]
-                z_k = (1 - kappa) * P[i] + kappa * Q[j]
+                z_k = (1 - kappa) * P_position[i] + kappa * Q_position[j]
                 interpolated_points.append((r_k, z_k))
                 k += 1
     
-    # Return the interpolated point cloud
-    return np.array([z for r, z in interpolated_points])
-    # You should already have your P, Q, and T defined here, as well as the value for kappa.
-    # interpolated_point_cloud = construct_interpolated_point_cloud(P, Q, T, kappa)
+    # After calculating interpolated points and pressures, construct the final cloud
+    interpolated_cloud = [{'position': tuple(z), 'pressure': r} for r, z in interpolated_points]
+
+    # Return the interpolated cloud
+    return interpolated_cloud
 
 # Function to generate random points with pressure
 def generate_random_sources(num_sources):
@@ -76,25 +86,27 @@ def generate_random_sources(num_sources):
     pressures = np.random.rand(num_sources)  # random pressures between 0 and 1
     return [{'position': tuple(pos), 'pressure': pressure} for pos, pressure in zip(positions, pressures)]
 
-def calculate_cloud_position(P, Q):
+def calculate_cloud_position(P):
     P_positions = np.array([list(d['position']) for d in P])
-    Q_positions = np.array([list(d['position']) for d in Q])
-    return P_positions, Q_positions
+    return P_positions
 
-def calculate_cloud_pressure(P, Q):
+def calculate_cloud_pressure(P):
     P_pressures = np.array([d['pressure'] for d in P])
-    Q_pressures = np.array([d['pressure'] for d in Q])
-    return P_pressures, Q_pressures
+    return P_pressures
 
 def visualize_interpolation(P, Q, T, kappa):
     # Define the virtual sources for P and Q as numpy arrays
-    P_positions, Q_positions = calculate_cloud_position(P, Q)
+    P_positions = calculate_cloud_position(P)
+    Q_positions = calculate_cloud_position(Q)
 
     # Define the pressures as arrays
-    P_pressures, Q_pressures = calculate_cloud_pressure(P, Q)
+    P_pressures = calculate_cloud_pressure(P)
+    Q_pressures = calculate_cloud_pressure(Q)
 
     # Construct the interpolated point cloud
-    interpolated_point_cloud = construct_interpolated_point_cloud(P_positions, Q_positions, T, kappa)
+    interpolated_point_cloud = construct_interpolated_point_cloud(P, Q, T, kappa)
+    interpolated_point_cloud_positions = calculate_cloud_position(interpolated_point_cloud)
+    interpolated_point_cloud_pressures = calculate_cloud_pressure(interpolated_point_cloud)
 
     # Plot the original and interpolated point clouds
     fig = plt.figure()
@@ -107,7 +119,7 @@ def visualize_interpolation(P, Q, T, kappa):
     ax.scatter(Q_positions[:, 0], Q_positions[:, 1], Q_positions[:, 2], s=1+(Q_pressures), c='b', marker='^', label='Original Q')
 
     # Plot the interpolated point cloud with label for legend
-    ax.scatter(interpolated_point_cloud[:, 0], interpolated_point_cloud[:, 1], interpolated_point_cloud[:, 2], s=50, c='g', marker='x', label='Interpolated')
+    ax.scatter(interpolated_point_cloud_positions[:, 0], interpolated_point_cloud_positions[:, 1], interpolated_point_cloud_positions[:, 2], s=50, c='g', marker='x', label='Interpolated')
 
     ax.set_xlabel('X axis')
     ax.set_ylabel('Y axis')
@@ -139,9 +151,9 @@ def calculate_omnidirectional_RIR(P, c, fs, max_time):
 
     # Calculate RIR as superposition of scaled delta functions
     for source in P:
-        p_i = source[0]
-        x_i = source[1:]
-        
+        x_i = source['position']
+        p_i = source['pressure']
+
         # Calculate the time delay for the source
         tau_i = np.linalg.norm(x_i) / c
         
@@ -169,7 +181,3 @@ def getFromFile(position, filename):
     data_list = [{'position': (DOA[i][0], DOA[i][1], DOA[i][2]), 'pressure': abs(P[i])} for i in range(num_points)]
     
     return data_list
-
-# positions = np.random.rand(num_sources, 3) * 5  # random positions within a 5x5x5 cube
-# pressures = np.random.rand(num_sources)  # random pressures between 0 and 1
-# return [{'position': tuple(pos), 'pressure': pressure} for pos, pressure in zip(positions, pressures)]
