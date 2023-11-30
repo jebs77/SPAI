@@ -2,43 +2,40 @@ import numpy as np
 import matplotlib.pyplot as plt
 import ot
 import scipy as sp
+# import cvxpy as cp
+# import sys
 
-# Function of the transport plan
-def transport_plan(P_position, Q_position):
-    # Convert point lists into numpy arrays
-    P_array = np.array(P_position)
-    Q_array = np.array(Q_position)
-    # Calculate the cost matrix, the squared euclidean distance between points
-    cost_matrix = ot.dist(P_array, Q_array, metric='sqeuclidean')
-    
-    # Compute the amount of mass to transport from P to Q
-    a, b = np.ones((len(P_position),)) / len(P_position), np.ones((len(Q_position),)) / len(Q_position)
-    
-    # # Compute the optimal transport matrix using the EMD solver
-    # T = ot.emd(a, b, cost_matrix)
-    
-    # Compute the optimal transport matrix using the Sinkhorn solver
-    T = ot.bregman.sinkhorn(a, b, cost_matrix, reg=1e-4, numItermax=100000)
+def ot_transport_plan(P, Q):
+    # Extract positions and pressures
+    P_positions = calculate_cloud_position(P)
+    Q_positions = calculate_cloud_position(Q)
+    P_pressures = calculate_cloud_pressure(P)
+    Q_pressures = calculate_cloud_pressure(Q)
 
-    return T
+    # Compute cost matrix based on positions
+    C = ot.dist(P_positions, Q_positions)
+
+    # Normalize pressures to form distributions
+    P_distribution = P_pressures / P_pressures.sum()
+    Q_distribution = Q_pressures / Q_pressures.sum()
+
+    # Compute Sinkhorn transport plan
+    T, log = ot.bregman.sinkhorn(P_distribution.flatten(), Q_distribution.flatten(), C, reg=1e-4, log=True)
+
+    # Extract u and v values
+    u = np.max(T, axis=1)
+    v = np.max(T, axis=0)
+
+    return T, u, v
 
 # Function to construct the interpolated point cloud
-def construct_interpolated_point_cloud(P, Q, T, kappa):
+def construct_interpolated_point_cloud(P, Q, T, u, v, kappa):
     # Calculate P_position and Q_position
-    P_position = calculate_cloud_position(P)
-    Q_position = calculate_cloud_position(Q)
+    P_positions = calculate_cloud_position(P)
+    Q_positions = calculate_cloud_position(Q)
 
-    # Convert pressures to numpy arrays if they aren't already
-    P_pressure = np.array(calculate_cloud_pressure(P))
-    Q_pressure = np.array(calculate_cloud_pressure(Q))
-
-    # Calculate u and v by solving the linear systems
-    u, _, _, _ = np.linalg.lstsq(T, P_pressure, rcond=None)
-    v, _, _, _ = np.linalg.lstsq(T.T, Q_pressure, rcond=None)
-
-    
     # Initialize the variables
-    K = len(P_position) + len(Q_position)  # total number of points after interpolation
+    K = len(P_positions) + len(Q_positions)  # total number of points after interpolation
     interpolated_points = []
     
     # Copy the transport plan
@@ -46,34 +43,34 @@ def construct_interpolated_point_cloud(P, Q, T, kappa):
     
     # Start with the algorithm
     k = 1
-    for i, ui in enumerate(u):
-        if ui > 0:
+    for i in range(len(u)):
+        if u[i] > 0:
             if np.sum(T[:, i]) == 0:  # Check for vanishing point
-                r_k = (1 - kappa) * ui
-                z_k = P_position[i]
+                r_k = (1 - kappa) * u[i]
+                z_k = P_positions[i]
                 interpolated_points.append((r_k, z_k))
                 k += 1
             else:
-                T_prime[:, i] = T[:, i] + (1 - kappa) * ui * T[:, i] / np.linalg.norm(T[:, i], 1)
-    
-    for j, vj in enumerate(v):
-        if vj > 0:
+                T_prime[:, i] = T[:, i] + (1 - kappa) * u[i] * T[:, i] / np.linalg.norm(T[:, i], 1)
+
+    for j in range(len(v)):
+        if v[j] > 0:
             if np.sum(T[j, :]) == 0:  # Check for appearing point
-                r_k = kappa * vj
-                z_k = Q_position[j]
+                r_k = kappa * v[j]
+                z_k = Q_positions[j]
                 interpolated_points.append((r_k, z_k))
                 k += 1
             else:
-                T_prime[j, :] = T_prime[j, :] + kappa * vj * T_prime[j, :] / np.linalg.norm(T_prime[j, :], 1)
-    
-    for i in range(len(P_position)):
-        for j in range(len(Q_position)):
+                T_prime[j, :] = T_prime[j, :] + kappa * v[j] * T_prime[j, :] / np.linalg.norm(T_prime[j, :], 1)
+
+    for i in range(len(P_positions)):
+        for j in range(len(Q_positions)):
             if T_prime[i, j] > 0:  # Check for moving point
                 r_k = T_prime[i, j]
-                z_k = (1 - kappa) * P_position[i] + kappa * Q_position[j]
+                z_k = (1 - kappa) * P_positions[i] + kappa * Q_positions[j]
                 interpolated_points.append((r_k, z_k))
                 k += 1
-    
+
     # After calculating interpolated points and pressures, construct the final cloud
     interpolated_cloud = [{'position': tuple(z), 'pressure': r} for r, z in interpolated_points]
 
@@ -94,7 +91,7 @@ def calculate_cloud_pressure(P):
     P_pressures = np.array([d['pressure'] for d in P])
     return P_pressures
 
-def visualize_interpolation(P, Q, T, kappa):
+def visualize_interpolation(P, Q, T, u, v, kappa):
     # Define the virtual sources for P and Q as numpy arrays
     P_positions = calculate_cloud_position(P)
     Q_positions = calculate_cloud_position(Q)
@@ -104,7 +101,7 @@ def visualize_interpolation(P, Q, T, kappa):
     Q_pressures = calculate_cloud_pressure(Q)
 
     # Construct the interpolated point cloud
-    interpolated_point_cloud = construct_interpolated_point_cloud(P, Q, T, kappa)
+    interpolated_point_cloud = construct_interpolated_point_cloud(P, Q, T, u, v, kappa)
     interpolated_point_cloud_positions = calculate_cloud_position(interpolated_point_cloud)
     interpolated_point_cloud_pressures = calculate_cloud_pressure(interpolated_point_cloud)
 
