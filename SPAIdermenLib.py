@@ -14,7 +14,7 @@ def transport_plan(P_position, Q_position):
     # Compute the amount of mass to transport from P to Q
     a, b = np.ones((len(P_position),)) / len(P_position), np.ones((len(Q_position),)) / len(Q_position)
     
-    # Compute the optimal transport matrix using the EMD solver
+    # # Compute the optimal transport matrix using the EMD solver
     # T = ot.emd(a, b, cost_matrix)
     
     # Compute the optimal transport matrix using the Sinkhorn solver
@@ -119,7 +119,7 @@ def visualize_interpolation(P, Q, T, kappa):
     ax.scatter(Q_positions[:, 0], Q_positions[:, 1], Q_positions[:, 2], s=1+(Q_pressures), c='b', marker='^', label='Original Q')
 
     # Plot the interpolated point cloud with label for legend
-    ax.scatter(interpolated_point_cloud_positions[:, 0], interpolated_point_cloud_positions[:, 1], interpolated_point_cloud_positions[:, 2], s=50, c='g', marker='x', label='Interpolated')
+    ax.scatter(interpolated_point_cloud_positions[:, 0], interpolated_point_cloud_positions[:, 1], interpolated_point_cloud_positions[:, 2], s=1+(interpolated_point_cloud_pressures), c='g', marker='x', label='Interpolated')
 
     ax.set_xlabel('X axis')
     ax.set_ylabel('Y axis')
