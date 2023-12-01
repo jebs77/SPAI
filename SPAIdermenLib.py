@@ -190,12 +190,15 @@ def calculate_omnidirectional_RIR(P, c, fs, max_time):
 def getFromFile(position, filename):
     data = sp.io.loadmat(filename)
     RIRs = data['RIRs']
-    index = 0
+    index = -1
     print(len(RIRs['x_position'][0]))
     for i in range(len(RIRs['x_position'][0])):
         if RIRs['x_position'][0][i] == position:
             index = i
             break
+    
+    if (index == -1):
+        raise ValueError("Position not found in RIRs['x_position'][0]")
     
     DOA = RIRs['DOA'][0][index]
     P = RIRs['P'][0][index]
