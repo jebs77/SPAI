@@ -7,7 +7,7 @@ Q = SPAI.getFromFile('150', 'room_impulse_responses.mat')
 R = SPAI.getFromFile('145', 'room_impulse_responses.mat')
 kappa = 0.5
 
-T, u, v = SPAI.ot_transport_plan(P, Q)
+T, u, v = SPAI.cp_transport_plan(P, Q)
 
 SPAI.visualize_interpolation(P, Q, T, u, v, kappa)
 
@@ -16,9 +16,6 @@ sampling_rate = 48000
 max_simulation_time = 0.1  # in seconds
 
 X_1 = SPAI.construct_interpolated_point_cloud(P, Q, T, u, v, kappa)
-for source in X_1:
-    source['pressure'] += 1
-    source['pressure'] /= 150
 
 t1, h_t1 = SPAI.calculate_omnidirectional_RIR(X_1, speed_of_sound, sampling_rate, max_simulation_time)
 t2, h_t2 = SPAI.calculate_omnidirectional_RIR(R, speed_of_sound, sampling_rate, max_simulation_time)

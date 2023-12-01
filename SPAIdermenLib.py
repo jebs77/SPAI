@@ -1,32 +1,60 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import ot
 import scipy as sp
-# import cvxpy as cp
-# import sys
+import cvxpy as cp
+import sys
 
-def ot_transport_plan(P, Q):
+def cp_transport_plan(P, Q):
     # Extract positions and pressures
     P_positions = calculate_cloud_position(P)
     Q_positions = calculate_cloud_position(Q)
     P_pressures = calculate_cloud_pressure(P)
     Q_pressures = calculate_cloud_pressure(Q)
 
-    # Compute cost matrix based on positions
-    C = ot.dist(P_positions, Q_positions)
+    # Define your data
+    N_size = len(P)
+    M_size = len(Q)
+    m_ones = np.ones((M_size,1))
+    n_ones = np.ones((N_size,1))
+    m1_ones = np.ones((M_size+1,1))
+    n1_ones = np.ones((N_size+1,1))
+    max_num = np.ones((1,1)) * sys.maxsize
+    zero = np.zeros((1,1))
 
-    # Normalize pressures to form distributions
-    P_distribution = P_pressures / P_pressures.sum()
-    Q_distribution = Q_pressures / Q_pressures.sum()
+    # Define the dimensions
+    xi = 1.05 * np.linalg.norm(P_positions-Q_positions)**2
+    C = np.zeros((N_size, M_size))
+    for i, x in enumerate(P_positions):
+        for j, y in enumerate(Q_positions):
+            C[i, j] = np.sum((x - y)**2)
 
-    # Compute Sinkhorn transport plan
-    T, log = ot.bregman.sinkhorn(P_distribution.flatten(), Q_distribution.flatten(), C, reg=1e-4, log=True)
+    print("Processing...")
+    print("Dimensions of m_ones:", m_ones.shape)
+    print("Dimensions of C:", C.shape)
+    C_bar = cp.vstack([cp.hstack([C, xi * m_ones]) , cp.hstack([xi * n_ones.T, max_num])])    
 
-    # Extract u and v values
-    u = np.max(T, axis=1)
-    v = np.max(T, axis=0)
+    u = cp.Variable((N_size,1))
+    v = cp.Variable((M_size,1))
 
-    return T, u, v
+    # Variables
+    T = cp.Variable((N_size, M_size), nonneg=True)
+    T_bar = cp.vstack([cp.hstack([T, u]),cp.hstack([v.T, zero])])
+
+    # Objective function
+    objective = cp.Minimize(cp.sum(cp.multiply(C_bar, T_bar)))
+    constrain1 = cp.hstack([T, u])
+    constrain2 = cp.hstack([T.T, v])
+    # Constraints
+    constraints = [
+        constrain1 @ m1_ones == P_pressures,
+        constrain2 @ n1_ones == Q_pressures
+    ]
+
+    # Formulate and solve the problem
+    problem = cp.Problem(objective, constraints)
+    problem.solve()
+
+    return T.value, u.value, v.value
 
 # Function to construct the interpolated point cloud
 def construct_interpolated_point_cloud(P, Q, T, u, v, kappa):
